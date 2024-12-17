@@ -7,7 +7,7 @@ A Python script for managing AWS S3 bucket policies across multiple buckets. Thi
 - Remove specific policies by SID
 - Backup existing policies before modifications
 - Restore policies from backups
-- Interactive bucket selection
+- Interactive bucket selection or direct bucket specification
 - Template-based policy management
 - Policy deduplication (prevents duplicate policy statements)
 
@@ -53,12 +53,12 @@ python s3_policy_manager.py <action> [options]
 
 1. **Apply a Policy Template**
    ```bash
-   python s3_policy_manager.py apply --template <template_name>
+   python s3_policy_manager.py apply --template <template_name> [--buckets bucket1,bucket2,bucket3]
    ```
 
 2. **Remove a Policy**
    ```bash
-   python s3_policy_manager.py remove --sid <policy_sid>
+   python s3_policy_manager.py remove --sid <policy_sid> [--buckets bucket1,bucket2,bucket3]
    ```
 
 3. **List Available Templates**
@@ -83,6 +83,24 @@ python s3_policy_manager.py <action> [options]
 - `--bucket`: Specific bucket name for backup listing/restoration
 - `--backup-file`: Path to the backup file for restoration
 - `--no-backup`: Skip backing up existing policies before modification
+- `--buckets`: Comma-separated list of bucket names to process (e.g., `bucket1,bucket2,bucket3`)
+
+### Bucket Selection
+
+You can select buckets in two ways:
+
+1. **Interactive Selection**: If you don't provide the `--buckets` option, the script will:
+   - List all available buckets
+   - Allow you to select buckets by number
+   - Provide an 'all' option to select all buckets
+
+2. **Direct Specification**: Use the `--buckets` option with a comma-separated list:
+   ```bash
+   python s3_policy_manager.py apply --template my_template --buckets bucket1,bucket2,bucket3
+   ```
+   - Invalid bucket names will be identified
+   - You'll be prompted to proceed with valid buckets if any are invalid
+   - The script will exit if no valid buckets are found
 
 ## Policy Templates
 
@@ -137,6 +155,7 @@ The script includes comprehensive error handling for:
 2. Test policy changes on non-production buckets first
 3. Review generated backups before applying major changes
 4. Use descriptive SIDs in policy templates for easier management
+5. When using `--buckets`, verify bucket names carefully before execution
 
 ## Troubleshooting
 
@@ -147,3 +166,4 @@ If you encounter issues:
 3. Ensure policy templates are valid JSON
 4. Verify template directory structure
 5. Check backup directory permissions
+6. Double-check bucket names when using the `--buckets` option
