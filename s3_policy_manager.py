@@ -29,9 +29,32 @@ def ensure_policy_templates_directory():
     os.makedirs(templates_dir, exist_ok=True)
     return templates_dir
 
-def list_and_select_buckets(s3_client):
-    """List all buckets and allow user to select them by number."""
+def list_and_select_buckets(s3_client, bucket_names=None):
+    """List all buckets and allow user to select them by number or use provided bucket names."""
     try:
+        # If bucket names are provided directly, validate them and return
+        if bucket_names:
+            all_buckets = {bucket['Name'] for bucket in s3_client.list_buckets()['Buckets']}
+            selected_buckets = [name.strip() for name in bucket_names.split(',')]
+            invalid_buckets = [name for name in selected_buckets if name not in all_buckets]
+            
+            if invalid_buckets:
+                print(f"Warning: The following buckets were not found: {', '.join(invalid_buckets)}")
+                proceed = input("Do you want to proceed with the valid buckets? (y/n): ").lower()
+                if proceed != 'y':
+                    sys.exit(1)
+                selected_buckets = [name for name in selected_buckets if name in all_buckets]
+            
+            if not selected_buckets:
+                print("No valid buckets selected.")
+                sys.exit(1)
+                
+            print("\nSelected buckets:")
+            for bucket in selected_buckets:
+                print(f"- {bucket}")
+            return selected_buckets
+
+        # Original interactive selection logic
         buckets = s3_client.list_buckets()['Buckets']
         
         if not buckets:
@@ -295,6 +318,7 @@ if __name__ == "__main__":
     parser.add_argument('--backup-file', help='Backup file to restore from')
     parser.add_argument('--no-backup', action='store_true',
                        help='Skip backing up existing policies')
+    parser.add_argument('--buckets', help='Comma-separated list of bucket names to process')
 
     args = parser.parse_args()
 
@@ -322,7 +346,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     # Get bucket selection for apply/remove actions
-    selected_buckets = list_and_select_buckets(s3_client)
+    selected_buckets = list_and_select_buckets(s3_client, args.buckets)
 
     if args.action == 'apply':
         if not args.template:
@@ -348,3 +372,4 @@ if __name__ == "__main__":
         else:
             print(f"Status: Error")
             print(f"Error message: {result['error']}")
+            
